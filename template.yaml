@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template para criar uma instância de bucket S3, um cluster Redshift e um serviço Fargate.
+
+Resources:
+
+  MyDBSecret:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: MySecretForAppAnomalyDetection
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "user_admin"}'
+        GenerateStringKey: "password"
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\;+%'
+
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: cryptocurrency-anomaly-detection
+
+  MyRedshiftClusterNamespace:
+    Type: AWS::RedshiftServerless::Namespace
+    DependsOn:
+      - MyDBSecret
+    Properties: 
+      AdminUsername: '{{resolve:secretsmanager:MySecretForAppAnomalyDetection:SecretString:username}}'
+      AdminUserPassword: '{{resolve:secretsmanager:MySecretForAppAnomalyDetection:SecretString:password}}'
+      DbName: marina-db
+      NamespaceName: cryptocurrency-anomaly-detection
+
+  MyRedshiftClusterWorkgroup:
+    Type: AWS::RedshiftServerless::Workgroup
+    Properties: 
+      WorkgroupName: anomaly-detection
+      NamespaceName: !Ref MyRedshiftClusterNamespace
+
+#   MyFargateTaskDefinition:
+#     Type: AWS::ECS::TaskDefinition
+#     Properties:
+#       Family: my-fargate-task  # Insira o nome da família da task Fargate aqui
+#       Cpu: '256'               # Defina a quantidade de CPU para o serviço Fargate
+#       Memory: '512'            # Defina a quantidade de memória para o serviço Fargate
+#       NetworkMode: awsvpc
+#       RequiresCompatibilities:
+#         - FARGATE
+#       ContainerDefinitions:
+#         - Name: my-fargate-container  # Insira o nome do container Fargate aqui
+#           Image: your-docker-image   # Insira a imagem Docker para o container aqui
+#           PortMappings:
+#             - ContainerPort: 80  # Insira a porta que o aplicativo dentro do container expõe aqui
+#           # Outras propriedades do container podem ser configuradas conforme necessário
+
+#   MyFargateService:
+#     Type: AWS::ECS::Service
+#     Properties:
+#       Cluster: default  # Insira o nome do cluster ECS onde o serviço será implantado
+#       DesiredCount: 1   # Defina a quantidade de tarefas em execução para o serviço
+#       TaskDefinition: !Ref MyFargateTaskDefinition  # Referencie a definição de tarefa Fargate criada acima
+#       LaunchType: FARGATE
+#       NetworkConfiguration:
+#         AwsvpcConfiguration:
+#           Subnets:
+#             - subnet-12345678  # Insira o ID da subnet onde o serviço Fargate será implantado
+#           AssignPublicIp: ENABLED  # Defina "ENABLED" ou "DISABLED" conforme a necessidade de IP público
+
+# # Aqui você pode adicionar outras resources, como permissões, load balancers, etc.
