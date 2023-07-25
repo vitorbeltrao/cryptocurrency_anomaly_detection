@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Template para criar uma instância de bucket S3, um cluster Redshift e um serviço Fargate.
+Description: Template para criar uma instancia de bucket S3, um cluster Redshift e um servico Fargate.
 
 Resources:
 
@@ -34,33 +34,70 @@ Resources:
       WorkgroupName: anomaly-detection
       NamespaceName: !Ref MyRedshiftClusterNamespace
 
-#   MyFargateTaskDefinition:
-#     Type: AWS::ECS::TaskDefinition
-#     Properties:
-#       Family: my-fargate-task  # Insira o nome da família da task Fargate aqui
-#       Cpu: '256'               # Defina a quantidade de CPU para o serviço Fargate
-#       Memory: '512'            # Defina a quantidade de memória para o serviço Fargate
-#       NetworkMode: awsvpc
-#       RequiresCompatibilities:
-#         - FARGATE
-#       ContainerDefinitions:
-#         - Name: my-fargate-container  # Insira o nome do container Fargate aqui
-#           Image: your-docker-image   # Insira a imagem Docker para o container aqui
-#           PortMappings:
-#             - ContainerPort: 80  # Insira a porta que o aplicativo dentro do container expõe aqui
-#           # Outras propriedades do container podem ser configuradas conforme necessário
+  ECSCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterName: AnomalyDetectionCluster
+      CapacityProviders:
+      - FARGATE
+      - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+        - CapacityProvider: FARGATE_SPOT
+          Weight: 1
 
-#   MyFargateService:
-#     Type: AWS::ECS::Service
-#     Properties:
-#       Cluster: default  # Insira o nome do cluster ECS onde o serviço será implantado
-#       DesiredCount: 1   # Defina a quantidade de tarefas em execução para o serviço
-#       TaskDefinition: !Ref MyFargateTaskDefinition  # Referencie a definição de tarefa Fargate criada acima
-#       LaunchType: FARGATE
-#       NetworkConfiguration:
-#         AwsvpcConfiguration:
-#           Subnets:
-#             - subnet-12345678  # Insira o ID da subnet onde o serviço Fargate será implantado
-#           AssignPublicIp: ENABLED  # Defina "ENABLED" ou "DISABLED" conforme a necessidade de IP público
+  ECSTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Command:
+            - >-
+              /bin/sh -c "echo '<html> <head> <title>Amazon ECS Sample
+              App</title> <style>body {margin-top: 40px; background-color:
+              #333;} </style> </head><body> <div
+              style=color:white;text-align:center> <h1>Amazon ECS Sample
+              App</h1> <h2>Congratulations!</h2> <p>Your application is now
+              running on a container in Amazon ECS.</p> </div></body></html>' > 
+              /usr/local/apache2/htdocs/index.html && httpd-foreground"
+          EntryPoint:
+            - sh
+            - '-c'
+          Essential: true
+          Image: 'httpd:2.4'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/fargate-task-definition
+              awslogs-region: us-east-1
+              awslogs-stream-prefix: ecs
+          Name: sample-fargate-app
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 80
+              Protocol: tcp
+      Cpu: 256
+      ExecutionRoleArn: 'arn:aws:iam::413301752162:role/ECSAnomalyDetection'
+      Family: task-definition-cfn
+      Memory: 512
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        OperatingSystemFamily: LINUX
 
-# # Aqui você pode adicionar outras resources, como permissões, load balancers, etc.
+  ECSService:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      ServiceName: cfn-service
+      Cluster: !Ref ECSCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          # SecurityGroups:
+          #   - !Ref InstanceSecurityGroup
+          Subnets:
+            - subnet-0633631b68624296b
+      TaskDefinition: !Ref ECSTaskDefinition
