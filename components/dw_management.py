@@ -8,6 +8,7 @@ Date: July/2023
 # import necessary packages
 import logging
 import psycopg2
+import pandas as pd
 
 logging.basicConfig(
     level=logging.INFO,
@@ -132,3 +133,46 @@ def copy_data_from_s3_to_redshift(
 
     # Close the connection to Redshift
     conn.close()
+
+
+def fetch_data_from_redshift(redshift_host: str, redshift_port: str, redshift_database: str,
+                             redshift_user: str, redshift_password: str, query: str) -> pd.DataFrame:
+    '''
+    Fetches data from an Amazon Redshift cluster using the provided connection details and query.
+
+    Parameters:
+        redshift_host (str): Redshift cluster endpoint.
+        redshift_port (str): Redshift cluster port.
+        redshift_database (str): Redshift database name.
+        redshift_user (str): Redshift database user.
+        redshift_password (str): Redshift database password.
+        query (str): SQL query to fetch the data.
+
+    Returns:
+        DataFrame: A DataFrame containing the fetched data.
+    '''
+    conn = None 
+
+    try:
+        # Connect to the Redshift cluster
+        conn = psycopg2.connect(
+            host=redshift_host,
+            port=redshift_port,
+            database=redshift_database,
+            user=redshift_user,
+            password=redshift_password
+        )
+
+        # Fetch the data using the query
+        logging.info('Fetching data from Amazon Redshift...')
+        data = pd.read_sql(query, conn)
+
+    except Exception as e:
+        logging.error(f'Error fetching data from Amazon Redshift: {str(e)}')
+        raise
+    finally:
+        # Close the connection if it was successfully established
+        if conn is not None:
+            conn.close()
+
+    return data
