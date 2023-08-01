@@ -61,7 +61,7 @@ def move_files_to_raw_layer(
         os.makedirs('tmp')
 
     # Save the processed data to csv format
-    eth_df.to_csv(f'/tmp/{today_date.date()}_processed_asteroidsNeows.parquet', ignore_index=True)
+    eth_df.to_csv(f'/tmp/{today_date.date()}_eth_historical_data.csv', ignore_index=True)
 
     # Upload the csv file to S3
     s3_client.upload_file(f'/tmp/{today_date.date()}_eth_historical_data.csv', bucket_name, destination_directory)
