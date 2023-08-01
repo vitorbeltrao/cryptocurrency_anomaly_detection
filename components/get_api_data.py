@@ -38,7 +38,3 @@ def get_historical_data(ticker: str, start_date: str, end_date: str) -> pd.DataF
     except Exception as e:
         logging.error(f'Error fetching data: {e}.')
         return pd.DataFrame()
-
-
-df = get_historical_data('ETH-USD', '2023-01-01', '2023-07-21')
-print(df)
