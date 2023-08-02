@@ -49,19 +49,20 @@ def move_files_to_processed_layer(
 
     # Define the paths for the raw and processed layers
     raw_directory = f'raw/crypto_anomaly_detect/eth/extracted_at={today_date.date()}/eth_historical_data.csv'
-    processed_directory = f'processed/crypto_anomaly_detect/eth/extracted_at={today_date.date()}/processed_eth_historical_data.csv'
+    processed_directory = f'processed/crypto_anomaly_detect/eth/extracted_at={today_date.date()}/processed_eth_historical_data.parquet'
 
     # Read the raw data from S3, selecting only desired columns
     obj = s3_client.get_object(Bucket=bucket_name, Key=raw_directory)
-    raw_data = pd.read_csv(obj['Body'], names=['Open', 'High', 'Low', 'Close', 'Adj Close', 
-                                               'Volume'])
+    raw_data = pd.read_csv(obj['Body'])
     logging.info('Raw data from s3 raw folder was fetched successfully.')
 
     ######################### Perform data transformations #########################
     processed_data = raw_data.copy()
-    processed_data = processed_data[['Open', 'Close']] # select only necessary columns
+    processed_data = processed_data[['Date', 'Open', 'Close']] # select only necessary columns
+    processed_data['Open'] = processed_data['Open'].astype(float)
+    processed_data['Close'] = processed_data['Close'].astype(float)
     processed_data['price_amplitude'] = (processed_data['Close'] - processed_data['Open']) # create new column to perform the anomaly detection
-    processed_data = processed_data[['price_amplitude']].reset_index()
+    processed_data = processed_data[['Date', 'price_amplitude']].reset_index(drop=True)
     logging.info('Data transformation has been performed successfully.')
 
     ####################################################################################################

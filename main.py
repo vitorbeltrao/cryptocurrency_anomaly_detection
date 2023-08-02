@@ -30,10 +30,18 @@ logging.basicConfig(
 
 # config
 TICKER = 'ETH-USD'
+
 BUCKET_NAME = config('BUCKET_NAME')
 AWS_ACCESSKEYID = config('AWS_ACCESSKEYID')
 AWS_SECRETACCESSKEY = config('AWS_SECRETACCESSKEY')
 REGION_NAME = config('REGION_NAME')
+
+REDSHIFT_HOST = config('REDSHIFT_HOST')
+REDSHIFT_PORT = config('REDSHIFT_PORT')
+REDSHIFT_DB = config('REDSHIFT_DB')
+REDSHIFT_USER = config('REDSHIFT_USER')
+REDSHIFT_PASS = config('REDSHIFT_PASS')
+REDSHIFT_TABLE_NAME = config('REDSHIFT_TABLE_NAME')
 
 
 if __name__ == "__main__":
@@ -51,4 +59,11 @@ if __name__ == "__main__":
     move_files_to_processed_layer(BUCKET_NAME, AWS_ACCESSKEYID, AWS_SECRETACCESSKEY, REGION_NAME)
 
     # 4. Create redshift table
-    
+    logging.info(
+        f'About to start executing the create table {REDSHIFT_TABLE_NAME} function')
+    table_columns = '''
+    Date TEXT,
+    price_amplitude FLOAT
+    '''
+    create_redshift_table(REDSHIFT_HOST, REDSHIFT_PORT, REDSHIFT_DB, REDSHIFT_USER, 
+                          REDSHIFT_PASS, REDSHIFT_TABLE_NAME, table_columns)
