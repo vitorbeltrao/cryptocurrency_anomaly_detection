@@ -11,7 +11,7 @@ Resources:
         SecretStringTemplate: '{"username": "user_admin"}'
         GenerateStringKey: "password"
         PasswordLength: 16
-        ExcludeCharacters: '"@/\;+%'
+        ExcludeCharacters: '"@/\;+% '
 
   MyS3Bucket:
     Type: AWS::S3::Bucket
