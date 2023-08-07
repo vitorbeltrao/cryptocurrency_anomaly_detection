@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Template para criar uma instancia de bucket S3, um cluster Redshift e um servico Fargate.
+Description: Template para criar uma instancia de bucket S3, um rds postgres e um servico Fargate.
 
 Resources:
 
@@ -18,21 +18,32 @@ Resources:
     Properties:
       BucketName: cryptocurrency-anomaly-detection
 
-  MyRedshiftClusterNamespace:
-    Type: AWS::RedshiftServerless::Namespace
+  MyDBInstance:
+    Type: 'AWS::RDS::DBInstance'
     DependsOn:
       - MyDBSecret
-    Properties: 
-      AdminUsername: '{{resolve:secretsmanager:MySecretForAppAnomalyDetection:SecretString:username}}'
-      AdminUserPassword: '{{resolve:secretsmanager:MySecretForAppAnomalyDetection:SecretString:password}}'
-      DbName: marina-db
-      NamespaceName: cryptocurrency-anomaly-detection
-
-  MyRedshiftClusterWorkgroup:
-    Type: AWS::RedshiftServerless::Workgroup
-    Properties: 
-      WorkgroupName: anomaly-detection
-      NamespaceName: !Ref MyRedshiftClusterNamespace
+    Properties:
+      AllocatedStorage: '20'
+      DBInstanceClass: db.t3.micro # free tier
+      Engine: postgres
+      EngineVersion: '14.7'
+      MasterUsername: '{{resolve:secretsmanager:MySecretForAppAnomalyDetection:SecretString:username}}'
+      MasterUserPassword: '{{resolve:secretsmanager:MySecretForAppAnomalyDetection:SecretString:password}}' # Referencing the secret value
+      DBInstanceIdentifier: marina-db
+      StorageType: gp2
+      MultiAZ: false
+      DBParameterGroupName: !Ref MyDBParameterGroup
+    
+  MyDBParameterGroup:
+    Type: 'AWS::RDS::DBParameterGroup'
+    Properties:
+      Family: postgres14
+      Description: My db parameter group
+      Parameters:
+        # Enable logical replication
+        rds.logical_replication: '1'
+        # Load shared libraries during database initialization
+        shared_preload_libraries: 'pg_stat_statements,pglogical'
 
   ECSCluster:
     Type: 'AWS::ECS::Cluster'

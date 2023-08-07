@@ -1,178 +1,251 @@
 '''
-Script to get data from datalake processed layer for redshift
+File to create the schemas, tables and populate
+them inside my postgres database
 
 Author: Vitor Abdo
-Date: July/2023
+Date: May/2023
 '''
 
 # import necessary packages
 import logging
 import psycopg2
 import pandas as pd
+from sqlalchemy import create_engine, inspect
 
 logging.basicConfig(
     level=logging.INFO,
     filemode='w',
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S')
+    format='%(name)s - %(levelname)s - %(message)s')
 
 
-def create_redshift_table(
-        redshift_host: str,
-        redshift_port: str,
-        redshift_database: str,
-        redshift_user: str,
-        redshift_password: str,
-        table_name: str,
-        column_definitions: list) -> None:
+def create_schema_into_postgresql(
+        endpoint_name: str,
+        port: int,
+        db_name: str,
+        user_name: str,
+        password: str,
+        schema_name: str) -> None:
+    '''Connects to a PostgreSQL database on Amazon RDS and creates a schema if it does not already exist
+
+    :param endpoint_name: (str)
+    The endpoint URL of your Amazon RDS instance
+
+    :param port: (int)
+    The port number to connect to the database
+
+    :param db_name: (str)
+    The name of the database to connect to
+
+    :param user_name: (str)
+    The name of the user to authenticate as
+
+    :param password: (str)
+    The user's password
+
+    :param schema_name: (str)
+    The name of the schema to create
     '''
-    Create a table in Amazon Redshift if it doesn't exist.
 
-    Args:
-        redshift_host (str): Hostname or IP address of the Redshift cluster.
-        redshift_port (str): Port number for the Redshift connection.
-        redshift_database (str): Name of the Redshift database.
-        redshift_user (str): Username for the Redshift connection.
-        redshift_password (str): Password for the Redshift connection.
-        table_name (str): Name of the table to be created.
-        column_definitions (list): List of dictionaries defining the columns and their data types.
-
-    Returns:
-        None
-    '''
-    # Establish a connection to Redshift
+    # Set up the connection
     conn = psycopg2.connect(
-        host=redshift_host,
-        port=redshift_port,
-        database=redshift_database,
-        user=redshift_user,
-        password=redshift_password
+        host=endpoint_name,
+        port=port,
+        database=db_name,
+        user=user_name,
+        password=password
     )
 
-    # Check if the table already exists
-    with conn.cursor() as cursor:
-        cursor.execute("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s)", (table_name,))
-        table_exists = cursor.fetchone()[0]
+    # Create a cursor to execute SQL commands
+    cur = conn.cursor()
 
-        # Create the table if it doesn't exist
-        if not table_exists:
-            create_table_query = f"CREATE TABLE {table_name} ("
-            for i, column in enumerate(column_definitions):
-                column_name = column['name']
-                column_type = column['type']
-                create_table_query += f"{column_name} {column_type}"
-                if i < len(column_definitions) - 1:
-                    create_table_query += ","
-            create_table_query += ")"
-            cursor.execute(create_table_query)
-            conn.commit()
-            logging.info(f"Table '{table_name}' created in Redshift.")
-        else:
-            logging.info(f"Table '{table_name}' already exists in Redshift. Skipping table creation.")
+    # Execute a query to check if the schema already exists
+    cur.execute(
+        f"SELECT schema_name FROM information_schema.schemata WHERE schema_name = '{schema_name}'")
+    result = cur.fetchone()
 
-    # Close the connection to Redshift
-    conn.close()
+    # If the schema does not exist, create it
+    if not result:
+        cur.execute(f"CREATE SCHEMA {schema_name}")
+        logging.info(f"Schema {schema_name} created successfully")
+    else:
+        logging.info(f"Schema {schema_name} already exists")
 
-
-def copy_data_from_s3_to_redshift(
-        redshift_host: str,
-        redshift_port: str,
-        redshift_database: str,
-        redshift_user: str,
-        redshift_password: str,
-        aws_access_key_id: str,
-        aws_secret_access_key: str,
-        s3_bucket: str,
-        s3_prefix: str,
-        table_name: str) -> None:
-    '''
-    Copy data from a folder in Amazon S3 to a table in Amazon Redshift using the COPY command.
-
-    Args:
-        redshift_host (str): Hostname or IP address of the Redshift cluster.
-        redshift_port (str): Port number for the Redshift connection.
-        redshift_database (str): Name of the Redshift database.
-        redshift_user (str): Username for the Redshift connection.
-        redshift_password (str): Password for the Redshift connection.
-        aws_access_key_id (str): AWS access key ID.
-        aws_secret_access_key (str): AWS secret access key.
-        s3_bucket (str): Name of the S3 bucket where the data is located.
-        s3_prefix (str): Prefix of the S3 object key for the data.
-        table_name (str): Name of the table in Redshift where the data will be loaded.
-
-    Returns:
-        None
-    '''
-    # Construct the S3 file path
-    s3_path = f's3://{s3_bucket}/{s3_prefix}'
-
-    # Construct the COPY command
-    copy_command = f'''
-    COPY {table_name}
-    FROM '{s3_path}'
-    CREDENTIALS 'aws_access_key_id={aws_access_key_id};aws_secret_access_key={aws_secret_access_key}'
-    FORMAT AS PARQUET
-    '''
-
-    # Establish a connection to Redshift
-    conn = psycopg2.connect(
-        host=redshift_host,
-        port=redshift_port,
-        database=redshift_database,
-        user=redshift_user,
-        password=redshift_password
-    )
-
-    # Execute the COPY command
-    with conn.cursor() as cursor:
-        cursor.execute(copy_command)
-        logging.info(f"Data copied from S3 to Redshift table '{table_name}'.")
-
-    # Commit the changes
+    # Commit and close the connection
     conn.commit()
-
-    # Close the connection to Redshift
+    cur.close()
     conn.close()
 
 
-def fetch_data_from_redshift(redshift_host: str, redshift_port: str, redshift_database: str,
-                             redshift_user: str, redshift_password: str, query: str) -> pd.DataFrame:
+def create_table_into_postgresql(
+        endpoint_name: str,
+        port: int,
+        db_name: str,
+        user_name: str,
+        password: str,
+        schema_name: str,
+        table_name: str,
+        table_columns: str) -> None:
+    '''Function that creates a table if it does not exist in a PostgresSQL schema
+
+    :param endpoint_name: (str)
+    The endpoint URL of your Amazon RDS instance
+
+    :param port: (int)
+    The port number to connect to the database
+
+    :param db_name: (str)
+    The name of the database to connect to
+
+    :param user_name: (str)
+    The name of the user to authenticate as
+
+    :param password: (str)
+    The user's password
+
+    :param schema_name: (str)
+    The name of the schema where the table should be created
+
+    :param table_name: (str)
+    The name of the table to be created
+
+    :param table_columns: (str)
+    The columns definition of the table in the format "column_name DATA_TYPE, column_name DATA_TYPE, ..."
     '''
-    Fetches data from an Amazon Redshift cluster using the provided connection details and query.
+    # Connection to the PostgresSQL database
+    conn = psycopg2.connect(
+        host=endpoint_name,
+        port=port,
+        database=db_name,
+        user=user_name,
+        password=password,
+    )
 
-    Parameters:
-        redshift_host (str): Redshift cluster endpoint.
-        redshift_port (str): Redshift cluster port.
-        redshift_database (str): Redshift database name.
-        redshift_user (str): Redshift database user.
-        redshift_password (str): Redshift database password.
-        query (str): SQL query to fetch the data.
+    # Creation of a cursor to execute SQL commands
+    cur = conn.cursor()
 
-    Returns:
-        DataFrame: A DataFrame containing the fetched data.
+    # Check if the table exists in the schema
+    table_exists_query = f"SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_schema = '{schema_name}' AND table_name = '{table_name}')"
+    cur.execute(table_exists_query)
+    exists = cur.fetchone()[0]
+
+    # If the table does not exist, create the table
+    if not exists:
+        create_table_query = f'CREATE TABLE {schema_name}.{table_name} ({table_columns})'
+        cur.execute(create_table_query)
+
+        unique_constraint_query = f'''
+        ALTER TABLE {schema_name}.{table_name} ADD CONSTRAINT unique_id UNIQUE (id);'''
+        cur.execute(unique_constraint_query)
+        
+        logging.info(
+            f'The table {table_name} was created in the {schema_name} schema')
+    else:
+        logging.info(
+            f'The table {table_name} already exists in the {schema_name} schema')
+
+    # Commit changes and close the connection
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def insert_data_into_postgresql(
+        endpoint_name: str,
+        port: str,
+        datab_name: str,
+        user_name: str,
+        password: str,
+        schema_name: str,
+        table_name: str,
+        df: pd.DataFrame,
+        temp_schema_name: str) -> None:
     '''
-    conn = None 
+    Function that inserts data from a Pandas DataFrame into a PostgreSQL table.
+    If the table does not exist, it creates a new one in the specified schema.
 
-    try:
-        # Connect to the Redshift cluster
-        conn = psycopg2.connect(
-            host=redshift_host,
-            port=redshift_port,
-            database=redshift_database,
-            user=redshift_user,
-            password=redshift_password
-        )
+    :param endpoint_name: (str)
+    The endpoint URL of your Amazon RDS instance
 
-        # Fetch the data using the query
-        logging.info('Fetching data from Amazon Redshift...')
-        data = pd.read_sql(query, conn)
+    :param port: (int)
+    The port number to connect to the database
 
-    except Exception as e:
-        logging.error(f'Error fetching data from Amazon Redshift: {str(e)}')
-        raise
-    finally:
-        # Close the connection if it was successfully established
-        if conn is not None:
-            conn.close()
+    :param db_name: (str)
+    The name of the database to connect to.
 
-    return data
+    :param user_name: (str)
+    The name of the user to authenticate as.
+
+    :param password: (str)
+    The user's password.
+
+    :param schema_name: (str)
+    The name of the schema where the table should be created.
+
+    :param table_name: (str)
+    The name of the table to be created or where the data will be inserted.
+
+    :param df: (pandas.DataFrame)
+    The DataFrame containing the data to be inserted.
+    '''
+
+    # Connect to the PostgreSQL database
+    db_host = endpoint_name
+    db_port = port
+    db_name = datab_name
+    db_user = user_name
+    db_pass = password
+
+    conn = psycopg2.connect(
+        host=db_host,
+        port=db_port,
+        dbname=db_name,
+        user=db_user,
+        password=db_pass
+    )
+    # create engine
+    engine = create_engine(
+        f'postgresql+psycopg2://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}')
+
+    # Create a temporary table with the data from the DataFrame
+    temp_table_name = f'temp_{table_name}'
+    df.to_sql(
+        name=temp_table_name,
+        con=engine.connect(),
+        schema=temp_schema_name,
+        index=False,
+        if_exists='replace')
+    logging.info('Temporary table was created: SUCCESS')
+
+    # Check if the final table exists
+    inspector = inspect(engine)
+    table_exists = inspector.has_table(table_name, schema=schema_name)
+
+    if table_exists:
+        # Check if the DataFrame columns match the table columns
+        db_cols_query = f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' AND table_schema='{schema_name}'"
+        with conn.cursor() as cur:
+            cur.execute(db_cols_query)
+            db_columns = [col[0] for col in cur.fetchall()]
+
+        df_columns = df.columns.tolist()
+
+        if db_columns != df_columns:
+            raise ValueError(
+                f'The columns of the DataFrame do not match the columns of the table {schema_name}.{table_name}')
+
+        # Insert the data into the final table without overwriting existing data
+        insert_query = f'INSERT INTO {schema_name}.{table_name} SELECT * FROM {temp_schema_name}.{temp_table_name} ON CONFLICT (id) DO NOTHING;'
+        with conn.cursor() as cur:
+            cur.execute(insert_query)
+        logging.info('The dataframe data has been inserted: SUCCESS')
+
+    # Remove the temporary table
+    drop_query = f'DROP TABLE {temp_schema_name}.{temp_table_name};'
+
+    with conn.cursor() as cur:
+        cur.execute(drop_query)
+    logging.info('The temp table has been removed: SUCCESS')
+
+    # Close the database connection
+    conn.commit()
+    conn.close()
