@@ -132,10 +132,6 @@ def create_table_into_postgresql(
     if not exists:
         create_table_query = f'CREATE TABLE {schema_name}.{table_name} ({table_columns})'
         cur.execute(create_table_query)
-
-        unique_constraint_query = f'''
-        ALTER TABLE {schema_name}.{table_name} ADD CONSTRAINT unique_id UNIQUE (id);'''
-        cur.execute(unique_constraint_query)
         
         logging.info(
             f'The table {table_name} was created in the {schema_name} schema')
@@ -234,7 +230,7 @@ def insert_data_into_postgresql(
                 f'The columns of the DataFrame do not match the columns of the table {schema_name}.{table_name}')
 
         # Insert the data into the final table without overwriting existing data
-        insert_query = f'INSERT INTO {schema_name}.{table_name} SELECT * FROM {temp_schema_name}.{temp_table_name} ON CONFLICT (id) DO NOTHING;'
+        insert_query = f'INSERT INTO {schema_name}.{table_name} SELECT * FROM {temp_schema_name}.{temp_table_name} ON CONFLICT DO NOTHING;'
         with conn.cursor() as cur:
             cur.execute(insert_query)
         logging.info('The dataframe data has been inserted: SUCCESS')

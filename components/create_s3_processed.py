@@ -64,6 +64,7 @@ def move_files_to_processed_layer(
     processed_data['Close'] = processed_data['Close'].astype(float)
     processed_data['price_amplitude'] = (processed_data['Close'] - processed_data['Open']) # create new column to perform the anomaly detection
     processed_data = processed_data[['Date', 'price_amplitude']].reset_index(drop=True)
+    processed_data.rename(columns={'Date': 'date'}, inplace=True)
     logging.info('Data transformation has been performed successfully.')
 
     ####################################################################################################
