@@ -230,7 +230,7 @@ def insert_data_into_postgresql(
                 f'The columns of the DataFrame do not match the columns of the table {schema_name}.{table_name}')
 
         # Insert the data into the final table without overwriting existing data
-        insert_query = f'INSERT INTO {schema_name}.{table_name} SELECT * FROM {temp_schema_name}.{temp_table_name} ON CONFLICT DO NOTHING;'
+        insert_query = f'INSERT INTO {schema_name}.{table_name} SELECT * FROM {temp_schema_name}.{temp_table_name} ON CONFLICT (date) DO NOTHING;'
         with conn.cursor() as cur:
             cur.execute(insert_query)
         logging.info('The dataframe data has been inserted: SUCCESS')
@@ -245,3 +245,36 @@ def insert_data_into_postgresql(
     # Close the database connection
     conn.commit()
     conn.close()
+
+
+def fetch_data_from_database(conn_string: str, query: str) -> pd.DataFrame:
+    '''
+    Fetches data from a database using the provided connection string and query.
+
+    Parameters:
+        conn_string (str): Connection string for the database.
+        query (str): SQL query to fetch the data.
+
+    Returns:
+        DataFrame: A DataFrame containing the fetched data.
+    '''
+    conn = None  # Definir a variável 'conn' como None
+
+    try:
+        # Connect to the database
+        conn = psycopg2.connect(conn_string)
+
+        # Fetch the data using the query
+        logging.info('Fetching data from the database...')
+        data = pd.read_sql(query, conn)
+
+    except Exception as e:
+        logging.error(f'Error fetching data from the database: {str(e)}')
+        raise
+
+    finally:
+        # Close the connection if it was successfully established
+        if conn is not None:
+            conn.close()
+
+    return data
