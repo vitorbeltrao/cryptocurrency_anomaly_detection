@@ -12,7 +12,9 @@ import logging
 import datetime
 import os
 import io
+import random
 import pandas as pd
+import numpy as np
 
 logging.basicConfig(
     level=logging.INFO,
@@ -58,6 +60,7 @@ def move_files_to_processed_layer(
     logging.info('Raw data from s3 raw folder was fetched successfully.')
 
     ######################### Perform data transformations #########################
+    # 1. transformations about cryptocurrency
     processed_data = raw_data.copy()
     processed_data = processed_data[['Date', 'Open', 'Close']] # select only necessary columns
     processed_data['Open'] = processed_data['Open'].astype(float)
@@ -65,6 +68,15 @@ def move_files_to_processed_layer(
     processed_data['price_amplitude'] = (processed_data['Close'] - processed_data['Open']) # create new column to perform the anomaly detection
     processed_data = processed_data[['Date', 'price_amplitude']].reset_index(drop=True)
     processed_data.rename(columns={'Date': 'date'}, inplace=True)
+
+    # 2. transformations about good practices of datasets
+    processed_data['id'] = np.nan
+    for i in range(len(processed_data)):
+        processed_data.loc[i, 'id'] = random.randint(1, 2147483647)
+
+    processed_data['created_at'] = today_date
+    processed_data['updated_at'] = today_date
+    processed_data = processed_data[['id', 'date', 'price_amplitude', 'created_at', 'updated_at']]
     logging.info('Data transformation has been performed successfully.')
 
     ####################################################################################################

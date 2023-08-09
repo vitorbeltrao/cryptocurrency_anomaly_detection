@@ -8,7 +8,8 @@ Date: Aug/2023
 # import necessary packages
 import logging
 import datetime
-import boto3
+import pandas as pd
+import numpy as np
 from decouple import config
 
 from components.get_api_data import get_historical_data
@@ -17,7 +18,7 @@ from components.create_s3_processed import move_files_to_processed_layer, get_fi
 from components.dw_management import create_schema_into_postgresql
 from components.dw_management import create_table_into_postgresql
 from components.dw_management import insert_data_into_postgresql
-from components.anomaly_detection_system import detect_outliers_iqr
+from components.dw_management import fetch_data_from_database
 from components.anomaly_detection_system import AnomalyTransformer
 from components.anomaly_detection_system import AnomalyDetector
 from components.alert_system import send_gmail_message
@@ -45,15 +46,19 @@ DW_SCHEMA_TO_CREATE = config('DW_SCHEMA_TO_CREATE')
 DW_TEMP_SCHEMA_TO_CREATE = config('DW_TEMP_SCHEMA_TO_CREATE')
 PROCESSED_TABLE_NAME = config('PROCESSED_TABLE_NAME')
 
+FROM = config('FROM')
+TO = config('TO')
+EMAIL_PASS = config('PASS')
+
 
 if __name__ == "__main__":
     # Define the start and end date of the period of interest to collect API data
     today_date = datetime.datetime.now()
-    last_week_date = today_date - datetime.timedelta(days=7)
+    yesterday_date = today_date - datetime.timedelta(days=7)
 
     # 1. Get the raw data from API
     logging.info('About to start getting data from the yahoo API')
-    raw_df = get_historical_data(TICKER, last_week_date, today_date)
+    raw_df = get_historical_data(TICKER, yesterday_date, today_date)
 
     # 2. Send the raw df to s3 bucket raw layer
     logging.info('About to start the creation of raw layer')
@@ -78,8 +83,12 @@ if __name__ == "__main__":
     # 6. Create rds table
     logging.info(f'About to start executing the create table {PROCESSED_TABLE_NAME} function')
     table_columns = '''
+    id INT,
     date TEXT,
-    price_amplitude FLOAT
+    price_amplitude FLOAT,
+    created_at TEXT,
+    updated_at TEXT,
+    PRIMARY KEY (date)
     '''
     create_table_into_postgresql(
         ENDPOINT_NAME,
@@ -107,3 +116,49 @@ if __name__ == "__main__":
             PROCESSED_TABLE_NAME,
             processed_data,
             DW_TEMP_SCHEMA_TO_CREATE)
+
+    # 8. anomaly detection
+    conn_string = f'host={ENDPOINT_NAME} port={PORT} dbname={DB_NAME} user={USER} password={PASSWORD}'
+    query = '''
+    SELECT * FROM cryptocurrency.processed_eth_historical_data
+    '''
+    anomaly_df = fetch_data_from_database(conn_string, query)
+    logging.info(f'The dataframe about {TICKER} cryptocurrency was fetched successfully.')
+
+    anomaly_df['date'] = pd.to_datetime(anomaly_df['date'])
+    anomaly_df.sort_values(by=['date'], inplace=True)
+
+    # get the last value from yesterday about ETH cryptocurrency to test the anomaly
+    last_crypto_value = round(anomaly_df['price_amplitude'].iloc[-1], 2)
+    logging.info(f'The last value from yesterday {last_crypto_value} was fetched successfully.')
+
+    # get the entire distribution to compare the last value
+    data_distribution = anomaly_df['price_amplitude'].iloc[:-1].values
+    data_distribution = [round(value, 2) for value in data_distribution]
+    logging.info(f'The data distribution from the historic data for {TICKER} were fetched successfully.')
+
+    # Perform outlier elimination
+    anomaly_transformer = AnomalyTransformer(data_distribution)
+    anomaly_transformer.fit_transform()
+    transformed_data = anomaly_transformer.transformed_data
+    logging.info(f'The outliers were eliminated from historic data distribution.')
+
+    # calculate mean, standard deviation, and threshold about cleaned distribution
+    mean_transformed = np.mean(transformed_data)
+    std_transformed = np.std(transformed_data)
+    threshold_transformed = 3 * std_transformed
+
+    # create anomaly detector
+    anomaly_detector = AnomalyDetector(
+        transformed_data, mean_transformed, std_transformed, threshold_transformed)
+    
+    # perform anomaly detection
+    if anomaly_detector.is_anomaly(last_crypto_value):
+        p_value = anomaly_detector.anomaly_report(last_crypto_value) # Generate anomaly report
+
+        email_subject = f'Anomaly about {TICKER} cryptocurrency has been found!'
+        email_body = f'The anomaly detection system found an anomaly with a value of {last_crypto_value} and a p-value of {p_value}'
+        send_gmail_message(FROM, TO, EMAIL_PASS, email_subject, email_body)
+
+    logging.info(
+        f'The anomaly detection system for day {today_date.date()} ran successfully for the quote value {last_crypto_value} obtained for yesterday day {yesterday_date.date()}')
