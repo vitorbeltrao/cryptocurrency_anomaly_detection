@@ -54,7 +54,7 @@ EMAIL_PASS = config('PASS')
 if __name__ == "__main__":
     # Define the start and end date of the period of interest to collect API data
     today_date = datetime.datetime.now()
-    yesterday_date = today_date - datetime.timedelta(days=7)
+    yesterday_date = today_date - datetime.timedelta(days=1)
 
     # 1. Get the raw data from API
     logging.info('About to start getting data from the yahoo API')
