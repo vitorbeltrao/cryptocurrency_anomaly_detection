@@ -62,20 +62,8 @@ Resources:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
       ContainerDefinitions:
-        - Command:
-            - >-
-              /bin/sh -c "echo '<html> <head> <title>Amazon ECS Sample
-              App</title> <style>body {margin-top: 40px; background-color:
-              #333;} </style> </head><body> <div
-              style=color:white;text-align:center> <h1>Amazon ECS Sample
-              App</h1> <h2>Congratulations!</h2> <p>Your application is now
-              running on a container in Amazon ECS.</p> </div></body></html>' > 
-              /usr/local/apache2/htdocs/index.html && httpd-foreground"
-          EntryPoint:
-            - sh
-            - '-c'
-          Essential: true
-          Image: 'httpd:2.4'
+        - Essential: true
+          Image: '413301752162.dkr.ecr.us-east-1.amazonaws.com/crypto_anomaly:latest'
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -87,10 +75,11 @@ Resources:
             - ContainerPort: 80
               HostPort: 80
               Protocol: tcp
-      Cpu: 256
+          Command: ["python", "main.py"]  # Comando a ser executado dentro do contêiner
+      Cpu: "256"
       ExecutionRoleArn: 'arn:aws:iam::413301752162:role/ECSAnomalyDetection'
       Family: task-definition-cfn
-      Memory: 512
+      Memory: "512"
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
