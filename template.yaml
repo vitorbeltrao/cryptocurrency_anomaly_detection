@@ -86,18 +86,16 @@ Resources:
       RuntimePlatform:
         OperatingSystemFamily: LINUX
 
-  ECSService:
-    Type: 'AWS::ECS::Service'
-    Properties:
-      ServiceName: cfn-service
+  ECSService: 
+    Type: AWS::ECS::Service
+    Properties: 
       Cluster: !Ref ECSCluster
       DesiredCount: 1
       LaunchType: FARGATE
+      TaskDefinition: !Ref ECSTaskDefinition 
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          # SecurityGroups:
-          #   - !Ref InstanceSecurityGroup
           Subnets:
             - subnet-0633631b68624296b
-      TaskDefinition: !Ref ECSTaskDefinition
+            - subnet-0e5244248d864b2f0
