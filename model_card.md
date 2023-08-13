@@ -54,13 +54,13 @@ The following image illustrates an example application of the statistical model.
 
 **Histogram**
 
-![Normal Distribution Histogram]()
+![Normal Distribution Histogram](https://github.com/vitorbeltrao/cryptocurrency_anomaly_detection/blob/main/images/distribui%C3%A7%C3%A3o%20normal.png?raw=true)
 
 In a simple way, we can estimate the data distribution probabilities if it's normal (as shown in the graph above). In our model, we will adopt 3 standard deviations as the limit to be tested. Thus, any point that falls to the right or left of this limit will be considered an anomaly. See this illustrated by the boxplot below.
 
 **Box-Plot**
 
-![Boxplot]()
+![Boxplot](https://github.com/vitorbeltrao/cryptocurrency_anomaly_detection/blob/main/images/boxplot.png?raw=true)
 
 Notice that all the green points are outside the considered limit and hence, they are considered outliers (anomalies).
 
