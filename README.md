@@ -14,6 +14,11 @@
 
 In the realm of finance, understanding and identifying anomalies—unusual patterns or events—is a critical task for maintaining stability and making informed decisions. This project aims to harness the power of data analytics to detect anomalies within financial data obtained from Yahoo Finance. The primary focus lies in utilizing the concept of amplitude, calculated as the difference between the closing and opening prices of financial instruments. By identifying anomalies in these amplitude values, this project offers insights into potentially noteworthy market events that may justify further investigation. 
 
+If the amplitude value is positive it means that the stock ended higher and if it is an anomaly it could mean that maybe it is time to sell the stock. 
+Similarly, if the amplitude value ends up negative, it means that stock prices have dropped, and if it is an anomaly, it may be time to buy them.
+
+Anyway, this is just a basic intuition, the focus here is the creation of the system. The technical part of how the stock market works should always be accompanied by an expert.
+
 **The workflow includes the following steps:**
 
 * Data Collection: Retrieve data from the Yahoo finance API using the provided endpoints.
@@ -26,7 +31,7 @@ In the realm of finance, understanding and identifying anomalies—unusual patte
 
 * Insight and Decision Support: The final goal of the project is to provide actionable insights. Identified anomalies could point towards specific events or market conditions that demand attention. These insights can aid financial professionals in making well-informed decisions and adopting proactive strategies.
 
-![architecture]()
+![architecture](https://github.com/vitorbeltrao/cryptocurrency_anomaly_detection/blob/main/images/project_architecture.jpg?raw=true)
 
 The entire project is orchestrated by AWS fargate which will be explained in more detail in the orchestration section.
 ***
@@ -73,17 +78,21 @@ and go into the repository:
 
 `cd cryptocurrency_anomaly_detection` 
 
+finally, create a virtual environment:
+
+run: `python -m venv venv` and `.\venv\scripts\activate` to activate your virtual environment. After that install packages that are in requirements: `pip install -r requirements.txt`.
+
 ### Create AWS account
 
 Go to the [AWS](https://aws.amazon.com/) page and create a free account for you to use the services needed for the project.
 
 ### template.yaml File
 
-Go to the [cloud formation](https://aws.amazon.com/cloudformation/) instance on AWS and upload this template so that the S3, database and ECS services are created to start the pipeline.
+Go to the [cloud formation](https://aws.amazon.com/cloudformation/) instance on AWS and upload this template so that the S3 and database services are created to start the pipeline.
 
 ### functions folder
 
-After performing the above steps, you can run `python main.py` in your terminal and all components will run in the required order until the final inference is performed
+After performing the above steps, you can run `python main.py` in your terminal and all components will run in the required order until the final inference is performed.
 
 ### .env File
 
@@ -112,7 +121,11 @@ In the .env, you must define all necessary variables like usernames, passwords a
 
 ## Orchestration <a name="orchestration"></a>
 
-In progress...
+This project runs automatically, 1x a day checking if every day the amplitude of the respective cryptocurrency is an anomaly or not. To run it automatically, first, we package the project using docker containers. By building the docker image locally and testing it, we upload the image to AWS ECR which works as an AWS docker image repository. For more details see the [ECR documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html).
+
+After uploading the image to the ECR repository, we create an AWS Fargate instance, which obtains the image created in ECR and runs it every day from a cron job. Fargate works similarly to a virtual machine, but it is serveless, managed by AWS, making life easier for the person responsible for maintaining the project. For more details see the [Fargate](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html).
+
+The `template.yaml` provided here in the repository already creates all the necessary instances to make the project work and be automatically orchestrated, which are the S3 buckets, RDS database and Fargate.
 ***
 
 ## Project Benefits <a name="benefits"></a>
