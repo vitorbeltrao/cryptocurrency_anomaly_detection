@@ -58,6 +58,25 @@ Resources:
         - CapacityProvider: FARGATE_SPOT
           Weight: 1
 
+  ECSTaskExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: FullAccessAdmin
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+
   ECSTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
@@ -77,7 +96,7 @@ Resources:
               Protocol: tcp
           Command: ["python", "main.py"]  # Comando a ser executado dentro do contêiner
       Cpu: "256"
-      ExecutionRoleArn: 'arn:aws:iam::413301752162:role/ECSAnomalyDetection'
+      ExecutionRoleArn: !Ref ECSTaskExecutionRole
       Family: task-definition-cfn
       Memory: "512"
       NetworkMode: awsvpc
@@ -99,3 +118,5 @@ Resources:
           Subnets:
             - subnet-0633631b68624296b
             - subnet-0e5244248d864b2f0
+          SecurityGroups:
+            - sg-08a63fd999e3f4d82
