@@ -54,6 +54,8 @@ The entire project is orchestrated by AWS fargate which will be explained in mor
 * `tests/`: directory that contains the tests for the functions that are in `components/`.
 
     * `conftest.py`: File where the fixtures were created to feed the unit tests.
+    * `test_get_api_data.py`: Tests for the functions of the respective component (get_api_data.py).
+    * `test_anomaly_detection_system.py`: Tests for the functions of the respective component (anomaly_detection_system.py).
 
 * `.env`: File containing environment variables used in the project.
 
@@ -115,8 +117,6 @@ In the .env, you must define all necessary variables like usernames, passwords a
     `pytest`
 
     The tests of the functions used are in the `cryptocurrency_anomaly_detection/tests` folder and to run them just write the code above in the terminal. In that folder are the tests that cover the production functions that are in the `cryptocurrency_anomaly_detection/components/` folder.
-
-    In progress...
 ***
 
 ## Orchestration <a name="orchestration"></a>
