@@ -1,14 +1,13 @@
 name: Cypress Docker Push
 on: 
-  push: 
-    branches: [ "main" ]
+  workflow_run:
+    workflows: ['Python application']
+    types:
+      - completed
   
 jobs:
   Cypress-Test:
 
-    needs: Python application
-    if: ${{ needs.build.outputs.status == 'success' }}
-   
     name: Build Docker Image
     runs-on: ubuntu-latest  
     steps:  
