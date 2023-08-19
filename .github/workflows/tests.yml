@@ -18,9 +18,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
     - name: Set up Python 3.9.13
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v2
       with:
         python-version: "3.9.13"
     - name: Install dependencies
@@ -28,6 +28,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Set up environment variables for pytest
+      run: |
+        echo "ENDPOINT_NAME=${{ secrets.ENDPOINT_NAME }}" >> $GITHUB_ENV
+        echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
+        echo "DB_NAME=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
+        echo "USER=${{ secrets.USER }}" >> $GITHUB_ENV
+        echo "PASSWORD=${{ secrets.PASSWORD }}" >> $GITHUB_ENV
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -37,3 +44,7 @@ jobs:
     - name: Test with pytest
       run: |
         pytest tests
+    - name: Set output status
+      id: set-output
+      run: |
+        echo "status=success" >> $GITHUB_ENV
