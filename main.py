@@ -48,7 +48,7 @@ PROCESSED_TABLE_NAME = config('PROCESSED_TABLE_NAME')
 
 FROM = config('FROM')
 TO = config('TO')
-EMAIL_PASS = config('PASS')
+EMAIL_PASS = config('EMAIL_PASS')
 
 
 if __name__ == "__main__":
