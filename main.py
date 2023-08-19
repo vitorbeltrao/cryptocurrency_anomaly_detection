@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     # 1. Get the raw data from API
     logging.info('About to start getting data from the yahoo API')
-    raw_df = get_historical_data(TICKER, yesterday_date, today_date)
+    raw_df = get_historical_data(TICKER, yesterday_date.date(), today_date.date())
 
     # 2. Send the raw df to s3 bucket raw layer
     logging.info('About to start the creation of raw layer')
