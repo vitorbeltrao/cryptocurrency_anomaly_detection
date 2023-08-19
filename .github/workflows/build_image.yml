@@ -7,7 +7,7 @@ jobs:
   Cypress-Test:
 
     needs: Python application
-    if: needs.Python application.outputs.status == 'success'
+    if: ${{ needs.build.outputs.status == 'success' }}
    
     name: Build Docker Image
     runs-on: ubuntu-latest  
