@@ -50,8 +50,8 @@ Resources:
     Properties:
       ClusterName: AnomalyDetectionCluster
       CapacityProviders:
-      - FARGATE
-      - FARGATE_SPOT
+        - FARGATE
+        - FARGATE_SPOT
       DefaultCapacityProviderStrategy:
         - CapacityProvider: FARGATE
           Weight: 1
@@ -77,6 +77,12 @@ Resources:
                 Action: "*"
                 Resource: "*"
 
+  ECSTaskLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: /ecs/fargate-task-definition
+      RetentionInDays: 7
+
   ECSTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
@@ -92,9 +98,6 @@ Resources:
           Name: sample-fargate-app
           PortMappings:
             - ContainerPort: 80
-              HostPort: 80
-              Protocol: tcp
-          Command: ["python", "main.py"]  # Comando a ser executado dentro do contêiner
       Cpu: "256"
       ExecutionRoleArn: !Ref ECSTaskExecutionRole
       Family: task-definition-cfn
@@ -120,3 +123,25 @@ Resources:
             - subnet-0e5244248d864b2f0
           SecurityGroups:
             - sg-08a63fd999e3f4d82
+
+  ServiceScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Schedule rule for crypto anomaly"
+      State: ENABLED
+      ScheduleExpression: cron(5 0 * * ? *)
+      Targets:
+        - Arn: !GetAtt ECSCluster.Arn
+          Id: ScheduledTask
+          RoleArn: !GetAtt ECSTaskExecutionRole.Arn
+          EcsParameters:
+            TaskDefinitionArn: !Ref ECSTaskDefinition
+            LaunchType: FARGATE
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: ENABLED
+                SecurityGroups:
+                  - sg-08a63fd999e3f4d82
+                Subnets:
+                  - subnet-0633631b68624296b
+                  - subnet-0e5244248d864b2f0
