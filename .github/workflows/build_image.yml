@@ -31,7 +31,7 @@ jobs:
           echo "PROCESSED_TABLE_NAME=${{ secrets.PROCESSED_TABLE_NAME }}" >> $GITHUB_ENV
           echo "FROM=${{ secrets.FROM }}" >> $GITHUB_ENV
           echo "TO=${{ secrets.TO }}" >> $GITHUB_ENV
-          echo "EMAIL_PASS=${{ secrets.PASS }}" >> $GITHUB_ENV
+          echo "EMAIL_PASS=${{ secrets.EMAIL_PASS }}" >> $GITHUB_ENV
 
       - name: Login to Amazon ECR
         id: login-pf-aws-ecr
