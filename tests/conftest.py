@@ -7,18 +7,18 @@ Date: Aug/2023
 
 # import necessary packages
 import pytest
+import os
 import pandas as pd
 import numpy as np
-from decouple import config
 from components.dw_management import fetch_data_from_database
 from components.anomaly_detection_system import AnomalyDetector
 
 # config
-ENDPOINT_NAME = config('ENDPOINT_NAME')
-PORT = config('PORT')
-DB_NAME = config('DB_NAME')
-USER = config('USER')
-PASSWORD = config('PASSWORD')
+ENDPOINT_NAME = os.getenv('ENDPOINT_NAME')
+PORT = os.getenv('PORT')
+DB_NAME = os.getenv('DB_NAME')
+USER = os.getenv('USER')
+PASSWORD = os.getenv('PASSWORD')
 
 @pytest.fixture
 def sample_api_data():
