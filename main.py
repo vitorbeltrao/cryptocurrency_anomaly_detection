@@ -33,9 +33,9 @@ logging.basicConfig(
 TICKER = 'ETH-USD'
 
 BUCKET_NAME = config('BUCKET_NAME')
-AWS_ACCESSKEYID = config('AWS_ACCESSKEYID')
-AWS_SECRETACCESSKEY = config('AWS_SECRETACCESSKEY')
-REGION_NAME = config('REGION_NAME')
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+AWS_REGION = config('AWS_REGION')
 
 ENDPOINT_NAME = config('ENDPOINT_NAME')
 PORT = config('PORT')
@@ -62,15 +62,15 @@ if __name__ == "__main__":
 
     # 2. Send the raw df to s3 bucket raw layer
     logging.info('About to start the creation of raw layer')
-    move_files_to_raw_layer(BUCKET_NAME, AWS_ACCESSKEYID, AWS_SECRETACCESSKEY, REGION_NAME, raw_df)
+    move_files_to_raw_layer(BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, raw_df)
 
     # 3. Move file to processed layer doing some transformations
     logging.info('About to start the creation of processed layer')
-    move_files_to_processed_layer(BUCKET_NAME, AWS_ACCESSKEYID, AWS_SECRETACCESSKEY, REGION_NAME)
+    move_files_to_processed_layer(BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)
 
     # 4. Get the current processed data
     logging.info('About to start getting data from processed layer')
-    processed_data = get_files_from_processed_layer(BUCKET_NAME, AWS_ACCESSKEYID, AWS_SECRETACCESSKEY, REGION_NAME)
+    processed_data = get_files_from_processed_layer(BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)
     logging.info('The processed data was fetched successfully')
 
     # 5. create rds schema if it does not already exist
