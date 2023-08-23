@@ -162,3 +162,6 @@ if __name__ == "__main__":
 
     logging.info(
         f'The anomaly detection system for day {today_date.date()} ran successfully for the quote value {last_crypto_value} obtained for yesterday day {yesterday_date.date()}')
+    
+    logging.info('Exiting the program...')
+    exit()
